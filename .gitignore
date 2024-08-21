@@ -1,0 +1,8 @@
+**/NSM_MODELS
+**/DOSMA
+**/DOSMA_WEIGHTS
+**/nsm
+**/pymskt
+
+dosma_knee_seg_orig.py
+config.json
