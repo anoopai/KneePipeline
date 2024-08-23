@@ -11,8 +11,10 @@ import pymskt as mskt
 import numpy as np
 import pandas as pd
 import subprocess
+import warnings
 
 
+print('Loading Inputs and Configurations...')
 # read two inputs arguments - where to get data, and where to save it. 
 path_image = sys.argv[1]
 path_save = sys.argv[2]
@@ -25,7 +27,7 @@ else:
 print('Path to image analyzing:', path_image)
 
 # Add path of current file to sys.path
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+# sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 
 # READ IN CONFIGURATION STUFF
@@ -43,11 +45,16 @@ for tissue, tissue_dict in dict_regions_.items():
     for region_num, region_name in tissue_dict.items():
         dict_regions[tissue][int(region_num)] = region_name
 
+
+print('Loading Image...')
 # figure out if the image is dicom, or nifti, or nrrd & load / get filename
 # as appropriate
 if os.path.isdir(path_image):
     # read in dicom image using DOSMA
-    qdess = QDess.from_dicom(path_image)
+    try:
+        qdess = QDess.from_dicom(path_image)
+    except KeyError:
+        qdess = QDess.from_dicom(path_image, group_by='EchoTime')
     volume = qdess.calc_rss()
     filename_save = os.path.basename(path_image)
 elif path_image.endswith(('nii', 'nii.gz')):
@@ -66,6 +73,7 @@ elif path_image.endswith('nrrd'):
 else:
     raise ValueError('Image format not supported.')
 
+print('Loading Model...')
 # load the appropriate segmentation model & its weights
 if 'bone' in model_name:
     # set the actual model class being used
@@ -78,6 +86,7 @@ if 'bone' in model_name:
 else:
     raise ValueError('Model name not supported.')
 
+print('Segmenting Image...')
 # SEGMENT THE MRI
 seg = model.generate_mask(volume)
 
@@ -92,7 +101,7 @@ sitk.WriteImage(sitk_seg, os.path.join(path_save, filename_save + '_all-labels.n
 
 
 # MESH CREATION AND CARTILAGE THICKNESS COMPUTATION
-
+print('Creating Meshes and Computing Cartilage Thickness...')
 # break segmentation into subregions
 sitk_seg_subregions = mskt.image.cartilage_processing.get_knee_segmentation_with_femur_subregions(
     sitk_seg,
@@ -158,9 +167,17 @@ for bone_name, dict_ in dict_bones.items():
     for cart_idx, cart_mesh in enumerate(bone_mesh.list_cartilage_meshes):
         cart_mesh.save_mesh(os.path.join(path_save, f'{bone_name}_cart_{cart_idx}_mesh.vtk'))
 
-# COMPUTE T2 MAPS & T2 METRICS
 
-if qdess is not None:
+
+
+# COMPUTE T2 MAPS & T2 METRICS
+print('Computing T2 Maps and Metrics...')
+include_required_tags = (
+    (qdess.get_metadata(qdess.__GL_AREA_TAG__, None) is not None)
+    and (qdess.get_metadata(qdess.__TG_TAG__, None) is not None)
+)
+if (qdess is not None) and include_required_tags:
+    # See if gl and tg private tags are present, if not, skip T2 computation
     # create T2 map and clip values
     cart = FemoralCartilage()
     t2map = qdess.generate_t2_map(cart, suppress_fat=True, suppress_fluid=True)
@@ -168,7 +185,6 @@ if qdess is not None:
     # convert to sitk for mean T2 computation
     sitk_t2map = t2map.volumetric_map.to_sitk(image_orientation='sagittal')
 
-    # get segmentation as array 
     seg_array = sitk.GetArrayFromImage(sitk_seg_subregions)
 
     # get T2 as array and set values outside of expected/reasonable range to nan
@@ -185,7 +201,16 @@ if qdess is not None:
             dict_results[f'{cart_region}_t2_ms_mean'] = mean_t2
             dict_results[f'{cart_region}_t2_ms_std'] = std_t2
             dict_results[f'{cart_region}_t2_ms_median'] = median_t2
-
+else:
+    if include_required_tags is False:
+        warnings.warn(
+            'GL and TG tags not present. Skipping T2 computation. '+
+            'NOTE: These are private tags and may have been removed ' +
+            'in the DICOM anonymization process.')
+        
+    # need seg_array for preprocessing related to NSM fitting. 
+    seg_array = sitk.GetArrayFromImage(sitk_seg_subregions)
+print('Saving Results...')
 # SAVE THICKNESS & T2 METRICS
 # save as csv
 df = pd.DataFrame([dict_results])
@@ -196,7 +221,7 @@ with open(os.path.join(path_save, f'{filename_save}_results.json'), 'w') as f:
     json.dump(dict_results, f, indent=4)
 
 # NSM (FEMUR) FITTING: 
-
+print('Fitting NSM Model & Saving Results...')
 # figure out if right or left leg. Use the medial/lateral tibial cartilage to determine side
 loc_med_cart_x = np.mean(np.where(seg_array == 3), axis=1)[0]
 loc_lat_cart_x = np.mean(np.where(seg_array == 4), axis=1)[0]
@@ -207,9 +232,9 @@ elif loc_med_cart_x < loc_lat_cart_x:
 
 # if side is left, flip the mesh to be a right knee
 if side == 'left':
-    femur = dict_bones['femur']['mesh'].copy()
+    femur = dict_bones['femur']['mesh'] # in the future, copy this when BoneMesh has own copy method
     # get the center of the mesh - so we can translate it back to have the same "center"
-    center = np.mean(femur.point_coords, axis=0)
+    center = np.mean(femur.point_coords, axis=0)[0]
     femur.point_coords = femur.point_coords * [-1, 1, 1]
     # move the mesh back so the center is the same as before the flip along x-axis. 
     femur.point_coords = femur.point_coords + [2*center, 0, 0]

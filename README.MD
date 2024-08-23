@@ -13,12 +13,16 @@ conda activate knee_pipeline
 conda install anaconda::cmake
 conda install conda-forge::lit
 
+# make directory to download and install dependencies
+mkdir DEPENDENCIES
+cd DEPENDENCIES
+
 # Install NSM 
 git clone https://github.com/gattia/nsm
 cd nsm
 conda install pytorch==2.0.0 torchvision==0.15.0 torchaudio==2.0.0 pytorch-cuda=11.7 -c pytorch -c nvidia
 make requirements
-pip install -e .
+pip install .
 
 # to download NSM models, install huggingface API
 pip install huggingface-hub

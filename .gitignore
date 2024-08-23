@@ -3,6 +3,7 @@
 **/DOSMA_WEIGHTS
 **/nsm
 **/pymskt
+**/DEPENDENCIES
 
 dosma_knee_seg_orig.py
 config.json
