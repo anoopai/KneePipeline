@@ -152,14 +152,15 @@ for bone_name, dict_ in dict_bones.items():
     dict_bones[bone_name]['mesh'] = bone_mesh
     
     # get thickness and region for each bone vertex
-    thickness = bone_mesh.get_scalar('thickness (mm)')
-    regions = bone_mesh.get_scalar('labels')
+    thickness = np.array(bone_mesh.get_scalar('thickness (mm)'))
+    regions = np.array(bone_mesh.get_scalar('labels'))
     
     # for each region, compute thicknes statics. 
     for region in cart_labels:
         dict_results[f"{dict_regions['cart'][region]}_mm_mean"] = np.nanmean(thickness[regions == region])
         dict_results[f"{dict_regions['cart'][region]}_mm_std"] = np.nanstd(thickness[regions == region])
         dict_results[f"{dict_regions['cart'][region]}_mm_median"] = np.nanmedian(thickness[regions == region])
+    
     
     # save the bone and cartilage meshes. 
     bone_mesh.save_mesh(os.path.join(path_save, f'{bone_name}_mesh.vtk'))
@@ -184,6 +185,10 @@ if (qdess is not None) and include_required_tags:
 
     # convert to sitk for mean T2 computation
     sitk_t2map = t2map.volumetric_map.to_sitk(image_orientation='sagittal')
+    
+    # save the t2 map
+    sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nii.gz'))
+    sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nrrd'))
 
     seg_array = sitk.GetArrayFromImage(sitk_seg_subregions)
 
@@ -191,6 +196,8 @@ if (qdess is not None) and include_required_tags:
     t2_array = sitk.GetArrayFromImage(sitk_t2map)
     t2_array[t2_array>=80] = np.nan
     t2_array[t2_array<=0] = np.nan
+    
+    
 
     # compute T2 metrics for each region & store in results dictionary
     for cart_idx, cart_region in dict_regions['cart'].items():
@@ -201,6 +208,39 @@ if (qdess is not None) and include_required_tags:
             dict_results[f'{cart_region}_t2_ms_mean'] = mean_t2
             dict_results[f'{cart_region}_t2_ms_std'] = std_t2
             dict_results[f'{cart_region}_t2_ms_median'] = median_t2
+    
+    # convert segmentation into simple depth dependent version of the segmentation.
+    for bone_name, dict_ in dict_bones.items():
+        bone_mesh = dict_['mesh']
+        # update bone_mesh list_cartilage_labels to be the original ones
+        # this is only really needed for the femur, but we do it for all bones... just in case. 
+        bone_mesh.list_cartilage_labels = dict_['list_cart_labels']
+        # assign the segmentation mask to be the original one.. 
+        bone_mesh.seg_image = sitk_seg
+        bone_new_seg, bone_rel_depth = bone_mesh.break_cartilage_into_superficial_deep(rel_depth_thresh=0.5, return_rel_depth=True, resample_cartilage_surface=10_000)
+        dict_['bone_new_seg'] = bone_new_seg
+        dict_['bone_rel_depth'] = bone_rel_depth
+    new_seg_combined = mskt.image.cartilage_processing.combine_depth_region_segs(
+        sitk_seg_subregions,
+        [x['bone_new_seg'] for x in dict_bones.values()],
+    )
+    
+    # compute T2 metrics for each region & store in results dictionary
+    # store as superficial / deep T2 maps. 
+    seg_array_depth = sitk.GetArrayFromImage(new_seg_combined)
+    for cart_idx, cart_region in dict_regions['cart'].items():
+        for depth_idx, depth_name in [(100, 'deep'), (200, 'superficial')]:
+            cart_idx_depth = cart_idx + depth_idx
+            if cart_idx_depth in seg_array_depth:
+                mean_t2 = np.nanmean(t2_array[seg_array_depth == cart_idx_depth])
+                std_t2 = np.nanstd(t2_array[seg_array_depth == cart_idx_depth])
+                median_t2 = np.nanmedian(t2_array[seg_array_depth == cart_idx_depth])
+                dict_results[f'{cart_region}_{depth_name}_t2_ms_mean'] = mean_t2
+                dict_results[f'{cart_region}_{depth_name}_t2_ms_std'] = std_t2
+                dict_results[f'{cart_region}_{depth_name}_t2_ms_median'] = median_t2
+        
+        
+        
 else:
     if include_required_tags is False:
         warnings.warn(
