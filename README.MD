@@ -1,7 +1,7 @@
 ### Environment Creation
 
 - Dependencies are: 
-    - DOSMA (bone_seg)
+    - DOSMA (bone_seg branch)
     - pymskt
     - NSM
 ```
@@ -83,7 +83,22 @@ downloaded files - RESAVE IT AS `config.json`:
     - models/acl_qdess_bone_july_2024: Update to path where `"Goyal_Bone_Cart_July_2024_best_model.h5` saved
     - nsm/path_model_config: update to path of the nsm `model_config.json`
     - nsm/path_model_state: update to path of the nsm model state (`2000.pth`)
-    - bscore/path_model_folder: update to folder where bscore json and .py script saved 
+    - bscore/path_model_folder: update to folder where bscore json and .py script saved
+
+There is currently a parameter in the config.json that 
+determines if the pipeline will perform the NSM analyses. 
+```
+"perform_bone_only_nsm": false,
+"perform_bone_and_cart_nsm": true,
+```
+
+By default, it fits the NSM to the bone+cartilage, but does
+not do it for the bone only model. The bone only model is
+not currently public - please reach out if it is of interest.. 
+
+If you do not want to do any NSM analyses, this can be turned
+off, by setting `perform_bone_and_cart_nsm` to `false`.
+
 
 
 ### Run script

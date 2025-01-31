@@ -22,12 +22,12 @@ from NSM.reconstruct import reconstruct_mesh
 
 # system arguments
 # path to the femur bone and cartilage meshes
-path_meshes = [sys.argv[1], sys.argv[2]]
+path_meshes = [sys.argv[1]]
 # locaton to save results
-loc_save_recons = sys.argv[3]
+loc_save_recons = sys.argv[2]
 # print reconstruction error metrics
-if len(sys.argv) > 4:
-    CALC_ASSD = sys.argv[4].lower() == 'true'
+if len(sys.argv) > 3:
+    CALC_ASSD = sys.argv[3].lower() == 'true'
 else:
     CALC_ASSD = True
 
@@ -40,21 +40,15 @@ with open(path_config) as f:
 
 
 # Setup file paths - relative to this script
-path_model_config = general_config['nsm']['path_model_config']
-path_model_state = general_config['nsm']['path_model_state']
+path_model_config = general_config['nsm_bone_only']['path_model_config']
+path_model_state = general_config['nsm_bone_only']['path_model_state']
 
 # Get BScore model path information
-# path_bscore_model = general_config['bscore']['path_model_json']
-path_bscore_folder = general_config['bscore']['path_model_folder']
+path_bscore_folder = general_config['bscore_bone_only']['path_model_folder']
 
 # append bscore_folder to sys.path and load BScore from Bscore.py
 sys.path.append(path_bscore_folder)
 from Bscore import Bscore
-
-# with open(path_bscore_model, 'r') as f:
-#     bscore_model = json.load(f)
-
-
 
 # Load nsm model config
 with open(path_model_config, 'r') as f:
@@ -91,43 +85,39 @@ model.eval()
 mesh_result = reconstruct_mesh(
     path=path_meshes,
     decoders=model,
-    latent_size=config['latent_size'],
-    # Fitting parameters:
     num_iterations=config['num_iterations_recon'],
-    l2reg=config['l2reg_recon'],
-    latent_reg_weight=config['l2reg_recon'],
-    loss_type='l1',
+    register_similarity=True,   
+    latent_size=config['latent_size'],
     lr=config['lr_recon'],
-    lr_update_factor=config['lr_update_factor_recon'],
+    l2reg=config['l2reg_recon'],
+    clamp_dist=config['clamp_dist_recon'],
     n_lr_updates=config['n_lr_updates_recon'],
-    return_latent=True,
-    register_similarity=True,
-    scale_jointly=config['scale_jointly'],
-    scale_all_meshes=True,
-    objects_per_decoder=2,
+    lr_update_factor=config['lr_update_factor_recon'],
+    calc_assd=CALC_ASSD,
+    calc_symmetric_chamfer=False, #model_config['chamfer'],
+    calc_emd=False, #model_config['emd'],
+    convergence=config['convergence_type_recon'], 
+    convergence_patience=config['convergence_patience_recon'],
+    verbose=True,
+    objects_per_decoder=config["objects_per_decoder"],
     batch_size_latent_recon=config['batch_size_latent_recon'],
     get_rand_pts=config['get_rand_pts_recon'],
     n_pts_random=config['n_pts_random_recon'],
     sigma_rand_pts=config['sigma_rand_pts_recon'],
-    n_samples_latent_recon=config['n_samples_latent_recon'], 
-
-    calc_assd=CALC_ASSD,
-    
-    convergence=config['convergence_type_recon'], 
-    convergence_patience=config['convergence_patience_recon'],
-    clamp_dist=config['clamp_dist_recon'],
-
+    n_samples_latent_recon=config['n_samples_latent_recon'],
+    scale_all_meshes=True,
+    func=None,
+    scale_jointly=config['scale_jointly'],
     fix_mesh=config['fix_mesh_recon'],
-    verbose=True,
+     
+    latent_reg_weight=config['l2reg_recon'],
+    loss_type='l1',
+    return_latent=True,
     return_registration_params=True,
 )
 
 # get meshes from results, convert bone to a "BoneMesh" so cartilage thickness can be calculated
 bone_mesh = BoneMesh(mesh_result['mesh'][0].mesh)
-cart_mesh = mesh_result['mesh'][1]
-
-# compute cartilage thickness for the bone mesh
-bone_mesh.calc_cartilage_thickness(list_cartilage_meshes=[cart_mesh])
 
 # get latent - we're not doing anything with this now, but it can be used for downstream predictions
 latent = mesh_result['latent'].detach().cpu().numpy().tolist()
@@ -139,8 +129,7 @@ bscore = Bscore(latent)
 if os.path.exists(loc_save_recons) == False:
     os.makedirs(loc_save_recons, exist_ok=True)
 
-bone_mesh.save_mesh(os.path.join(loc_save_recons, f'NSM_recon_{os.path.basename(path_meshes[0])}'))
-cart_mesh.save_mesh(os.path.join(loc_save_recons, f'NSM_recon_{os.path.basename(path_meshes[1])}'))
+bone_mesh.save_mesh(os.path.join(loc_save_recons, f'NSM_bone_only_recon_{os.path.basename(path_meshes[0])}'))
 
 # SAVE THE GENERAL PARAMETERS:
 # first, convert the icp_transform to a numpy array if it is a vtk object
@@ -161,7 +150,6 @@ dict_results = {
     'center': mesh_result['center'].tolist(),
     'scale': mesh_result['scale'],
     'assd_bone_mm': mesh_result['assd_0'],
-    'assd_cartilage_mm': mesh_result['assd_1'],
 }
 
 # print all of the dict results, except latent:
@@ -169,10 +157,10 @@ for key, val in dict_results.items():
     if key != 'latent':
         print(f'{key}: {val}')
 
-with open(os.path.join(loc_save_recons, 'NSM_recon_params.json'), 'w') as f:
+with open(os.path.join(loc_save_recons, 'NSM_bone_only_recon_params.json'), 'w') as f:
     json.dump(dict_results, f, indent=4)
     
-    
+
 # delete the model from memory & clear GPU memory cache
 del model
 if torch.cuda.is_available():
