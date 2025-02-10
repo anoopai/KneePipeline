@@ -101,7 +101,7 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
     # convert seg to sitk format for pymskt processing
     sitk_seg = seg['all'].to_sitk(image_orientation='sagittal')
     # save the segmentation as nrrd
-    sitk.WriteImage(sitk_seg, os.path.join(path_save, filename_save + '_all-labels.nrrd'))
+    sitk.WriteImage(sitk_seg, os.path.join(path_save, filename_save + '_all-labels.nrrd'), useCompression=True)
 
 
     print('Creating Meshes and Computing Cartilage Thickness...')
@@ -110,7 +110,7 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
         sitk_seg,
         fem_cart_label_idx=2,
         wb_region_percent_dist=0.6,
-        # femur_label=1,
+        femur_label=7,
         med_tibia_label=3,
         lat_tibia_label=4,
         ant_femur_mask=11,
@@ -121,8 +121,11 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
         verify_med_lat_tib_cart=True,
         tibia_label=8,
         ml_axis=0,
-        
     )
+    
+    # save the subregions to disk
+    sitk.WriteImage(sitk_seg_subregions, os.path.join(path_save, f'{filename_save}_subregions-labels.nrrd'), useCompression=True)
+    sitk.WriteImage(sitk_seg_subregions, os.path.join(path_save, f'{filename_save}_subregions-labels.nii.gz'), useCompression=True)
 
     # create 3D surfaces w/ cartilage thickness & compute thickness metrics
     dict_results = {}
@@ -191,8 +194,8 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
             sitk_t2map = t2map.volumetric_map.to_sitk(image_orientation='sagittal')
             
             # save the t2 map
-            sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nii.gz'))
-            sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nrrd'))
+            sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nii.gz'), useCompression=True)
+            sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nrrd'), useCompression=True)
 
             seg_array = sitk.GetArrayFromImage(sitk_seg_subregions)
 
@@ -230,7 +233,7 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
             )
             
             # save the depth dependent segmentation to disk 
-            sitk.WriteImage(new_seg_combined, os.path.join(path_save, f'{filename_save}_depth_seg.nrrd'))
+            sitk.WriteImage(new_seg_combined, os.path.join(path_save, f'{filename_save}_depth_seg.nrrd'), useCompression=True)
             
             # compute T2 metrics for each region & store in results dictionary
             # store as superficial / deep T2 maps. 
