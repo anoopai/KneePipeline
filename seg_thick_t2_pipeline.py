@@ -141,9 +141,16 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
         bone_mesh.create_mesh(smooth_image_var=0.5)
         bone_mesh.resample_surface(clusters=dict_['n_points'])
         
+        # fix bone mesh
+        bone_mesh.fix_mesh()
+        
         # compute cartilage thickness metrics - on surfaces
         bone_mesh.calc_cartilage_thickness(image_smooth_var_cart=0.3125)
         bone_mesh.seg_image = sitk_seg_subregions
+        
+        # fix cartilage surface
+        for cart_mesh in bone_mesh.list_cartilage_meshes:
+            cart_mesh.fix_mesh()
         
         # get labels to compute thickness metrics
         if bone_name == 'femur':
