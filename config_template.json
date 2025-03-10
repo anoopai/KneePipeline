@@ -1,9 +1,13 @@
 {
-    "perform_bone_only_nsm": false,
-    "perform_bone_and_cart_nsm": true,
-    "default_seg_model": "acl_qdess_bone_july_2024",
+    "perform_bone_only_nsm": true,
+    "perform_bone_and_cart_nsm": false,
+    "clip_femur_top": true,
+    "default_seg_model": "staple",
     "models": {
-        "acl_qdess_bone_july_2024": "/path/to/best_model.h5"
+        "acl_qdess_bone_july_2024": "/path/to/DOSMA_WEIGHTS/Goyal_Bone_Cart_July_2024_best_model.h5",
+        "goyal_sagittal": "/path/to/DOSMA_WEIGHTS/sagittal_best_model.h5",
+        "goyal_coronal": "/path/to/DOSMA_WEIGHTS/coronal_best_model.h5",
+        "goyal_axial": "/path/to/DOSMA_WEIGHTS/axial_best_model.h5"
     },
     "nsm": {
         "path_model_config": "/path/to/NSM_MODELS/231_nsm_femur_cartilage_v0.0.1/model_config.json",
