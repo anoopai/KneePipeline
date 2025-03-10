@@ -4,7 +4,6 @@
 **/nsm
 **/pymskt
 **/Dependencies
-**/BSCORE_MODELS
 **/MDC_controls
 **/models_and_weights
 **/mean_data
@@ -16,6 +15,6 @@ config.json
 test_commands.txt
 
 
-*.pyc
-*__pycache__
+**/*.pyc
+**/__pycache__
 *.DS_Store

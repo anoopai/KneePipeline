@@ -4,7 +4,7 @@ import json
 
 PATH_JSON = os.path.join(os.path.dirname(__file__), 'model.json')
 
-def interpolate_along_bvector(latents, path_json=PATH_JSON, standard_deviation):
+def Bscore(latents, path_json=PATH_JSON):
     """
     Function to compute Bscore from latents
     

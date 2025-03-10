@@ -5,7 +5,13 @@ import json
 from dosma.scan_sequences import QDess
 from dosma import MedicalVolume
 import dosma as dm
-from dosma.models import StanfordQDessBoneUNet2D, StanfordCubeBoneUNet2D
+from dosma.models import (
+    StanfordQDessBoneUNet2D, StanfordCubeBoneUNet2D, 
+    StanfordQDessBoneUNet2DSagittal, 
+    StanfordQDessBoneUNet2DCoronal, 
+    StanfordQDessBoneUNet2DAxial,
+    StanfordQDessBoneUNet2DSTAPLE
+)
 from dosma.tissues import FemoralCartilage
 import SimpleITK as sitk
 import pymskt as mskt
@@ -15,6 +21,7 @@ import warnings
 import torch
 import gc
 import time
+from utils import clip_femur_top
 
 def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_2024'):
     print('Loading Inputs and Configurations...')
@@ -79,16 +86,31 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
 
     print('Loading Model...')
     # load the appropriate segmentation model & its weights
-    if 'bone' in model_name:
-        # set the actual model class being used
+    # set the actual model class being used
+    if model_name == 'staple':
+        model = StanfordQDessBoneUNet2DSTAPLE(
+            config['models']['goyal_sagittal'],
+            config['models']['goyal_coronal'],
+            config['models']['goyal_axial']
+        )
+    else:
+        orig_model_image_size = (512,512)
         if 'cube' in model_name:
             model_class = StanfordCubeBoneUNet2D
+        elif model_name == 'goyal_sagittal':
+            model_class = StanfordQDessBoneUNet2DSagittal
+            orig_model_image_size = None
+        elif model_name == 'goyal_coronal':
+            model_class = StanfordQDessBoneUNet2DCoronal
+            orig_model_image_size = None
+        elif model_name == 'goyal_axial':
+            model_class = StanfordQDessBoneUNet2DAxial
+            orig_model_image_size = None
+        
         else:
             model_class = StanfordQDessBoneUNet2D
         # load the model. 
-        model = model_class(config['models'][model_name], orig_model_image_size=(512,512))
-    else:
-        raise ValueError('Model name not supported.')
+        model = model_class(config['models'][model_name], orig_model_image_size=orig_model_image_size)
 
 
     print('Segmenting Image...')
@@ -317,7 +339,11 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
         else:
             femur = dict_bones['femur']['mesh']
             fem_cart = femur.list_cartilage_meshes[0]
-
+        
+        if config['clip_femur_top']:
+            # this will clip the femur to be 70% of width, or 95% of height, whichever is larger.
+            femur = clip_femur_top(femur)
+   
         # save the femur and cartilage meshes - this is in "NSM" format
         femur.save_mesh(os.path.join(path_save, 'femur_mesh_NSM_orig.vtk'))
         fem_cart.save_mesh(os.path.join(path_save, 'fem_cart_mesh_NSM_orig.vtk'))
