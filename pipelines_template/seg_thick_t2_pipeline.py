@@ -88,6 +88,7 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
     # load the appropriate segmentation model & its weights
     # set the actual model class being used
     if model_name == 'staple':
+        print('Using Staple Model')
         model = StanfordQDessBoneUNet2DSTAPLE(
             config['models']['goyal_sagittal'],
             config['models']['goyal_coronal'],
@@ -96,21 +97,28 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
     else:
         orig_model_image_size = (512,512)
         if 'cube' in model_name:
+            print('Using Cube Model')
             model_class = StanfordCubeBoneUNet2D
         elif model_name == 'goyal_sagittal':
+            print('Using Goyal Sagittal Model')
             model_class = StanfordQDessBoneUNet2DSagittal
             orig_model_image_size = None
         elif model_name == 'goyal_coronal':
+            print('Using Goyal Coronal Model')
             model_class = StanfordQDessBoneUNet2DCoronal
             orig_model_image_size = None
         elif model_name == 'goyal_axial':
+            print('Using Goyal Axial Model')
             model_class = StanfordQDessBoneUNet2DAxial
             orig_model_image_size = None
         
         else:
             model_class = StanfordQDessBoneUNet2D
         # load the model. 
+        print(f'Loading {model_name} model, orig_model_image_size: {orig_model_image_size}')
         model = model_class(config['models'][model_name], orig_model_image_size=orig_model_image_size)
+    
+    model.batch_size = int(config['batch_size'])
 
 
     print('Segmenting Image...')
@@ -215,18 +223,17 @@ def main(path_image, path_save, path_config, model_name='acl_qdess_bone_july_202
             and (qdess.get_metadata(qdess.__TG_TAG__, None) is not None)
         )
         if include_required_tags:
-            # See if gl and tg private tags are present, if not, skip T2 computation
+            # See if gl and tg private tags are present, if not, 32Askip T2 computation
             # create T2 map and clip values
             cart = FemoralCartilage()
-            # t2map = qdess.generate_t2_map(cart, suppress_fat=True, suppress_fluid=True)
-            t2map= qdess.generate_t2_map(cart, tr= 0.01766e3, te= 0.005924e3, tg= 0.001904e6, alpha= 20, gl_area=3132)
+            t2map = qdess.generate_t2_map(cart, suppress_fat=False, suppress_fluid=False)
 
             # convert to sitk for mean T2 computation
             sitk_t2map = t2map.volumetric_map.to_sitk(image_orientation='sagittal')
             
             # save the t2 map
-            sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nii.gz'), useCompression=True)
-            sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nrrd'), useCompression=True)
+            sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nii.gz'), useCompression=False)
+            sitk.WriteImage(sitk_t2map, os.path.join(path_save, f'{filename_save}_t2map.nrrd'), useCompression=False)
 
             seg_array = sitk.GetArrayFromImage(sitk_seg_subregions)
 

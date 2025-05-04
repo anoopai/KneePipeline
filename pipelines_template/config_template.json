@@ -2,7 +2,8 @@
     "perform_bone_only_nsm": true,
     "perform_bone_and_cart_nsm": false,
     "clip_femur_top": true,
-    "default_seg_model": "staple",
+    "default_seg_model": "goyal_sagittal",
+    "batch_size": 32,
     "models": {
         "acl_qdess_bone_july_2024": "/path/to/DOSMA_WEIGHTS/Goyal_Bone_Cart_July_2024_best_model.h5",
         "goyal_sagittal": "/path/to/DOSMA_WEIGHTS/sagittal_best_model.h5",
@@ -10,18 +11,18 @@
         "goyal_axial": "/path/to/DOSMA_WEIGHTS/axial_best_model.h5"
     },
     "nsm": {
-        "path_model_config": "/path/to/NSM_MODELS/231_nsm_femur_cartilage_v0.0.1/model_config.json",
-        "path_model_state": "/path/to/NSM_MODELS/231_nsm_femur_cartilage_v0.0.1/model/2000.pth"
+        "path_model_config": "/path/to/NSM_MODELS/647_nsm_femur_cartilage_v0.0.1/model_config.json",
+        "path_model_state": "/path/to/NSM_MODELS/647_nsm_femur_cartilage_v0.0.1/model/2000.pth"
     },
     "bscore": {
-        "path_model_folder": "/path/to/BSCORE_MODELS/NSM_Orig_BScore_Nov_2024"
+        "path_model_folder": "/path/to/BSCORE_MODELS/NSM_Orig_BScore_Bone_Cartilage_April_17_2025"
     },
     "nsm_bone_only": {
         "path_model_config": "/path/to/NSM_MODELS/551_nsm_femur_bone_v0.0.1/model_params_config.json",
         "path_model_state": "/path/to/NSM_MODELS/551_nsm_femur_bone_v0.0.1/model/1150.pth"
     },
     "bscore_bone_only": {
-        "path_model_folder": "/path/to/BSCORE_MODELS/NSM_Orig_BScore_Bone_Only_Jan_2025"
+        "path_model_folder": "/path/to/BSCORE_MODELS/NSM_Orig_BScore_Bone_Only_April_18_2025"
     },
     "regions": {
         "cart": {
