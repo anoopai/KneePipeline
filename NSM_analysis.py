@@ -26,8 +26,8 @@ path_meshes = [sys.argv[1], sys.argv[2]]
 # locaton to save results
 loc_save_recons = sys.argv[3]
 # print reconstruction error metrics
-if len(sys.argv) > 4:
-    CALC_ASSD = sys.argv[4].lower() == 'true'
+if len(sys.argv) > 5:
+    CALC_ASSD = sys.argv[5].lower() == 'true'
 else:
     CALC_ASSD = True
 
@@ -53,8 +53,6 @@ from Bscore import Bscore
 
 # with open(path_bscore_model, 'r') as f:
 #     bscore_model = json.load(f)
-
-
 
 # Load nsm model config
 with open(path_model_config, 'r') as f:

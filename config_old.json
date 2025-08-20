@@ -1,0 +1,61 @@
+{
+    "perform_bone_only_nsm": true,
+    "perform_bone_and_cart_nsm": false,
+    "default_seg_model": "acl_qdess_bone_july_2024",
+    "models": {
+        "bonev1": "/dataNAS/people/aagatti/skmtea_weights/coarse_2d_sagittal_v1_05-54_Apr-11-2024/model_with_best_weights.h5",
+        "bonev2": "/dataNAS/people/aagatti/skmtea_weights/gatti_versions/aclr_april.24.2024/best_model.h5",
+        "cube_bonev1": "/dataNAS/people/aagatti/skmtea_weights/gatti_versions/cube_april.22.2024/best_model.h5",
+        "cube_qdess_bonev1": "/dataNAS/people/aagatti/skmtea_weights/gatti_versions/cube_qdess_bone_april.24.2024/best_model.h5",
+        "acl_qdess_bone_july_2024": "/bmrNAS/people/aagatti/projects/auto_seg_server/Segmentation/DOSMA_WEIGHTS/Goyal_Bone_Cart_July_2024_best_model.h5"
+    },
+    "nsm": {
+        "path_model_config": "/dataNAS/people/aagatti/projects/nsm_femur/training_run_files/experiment_results/647_nsm_femur_v0.0.1/model_params_config.json",
+        "path_model_state": "/dataNAS/people/aagatti/projects/nsm_femur/training_run_files/experiment_results/647_nsm_femur_v0.0.1/model/2000.pth"
+    },
+    "bscore": {
+        "path_model_folder": "/dataNAS/people/anoopai/KneePipeline/models_and_weights/NSM_models/NSM_Orig_BScore_Bone_Cartilage_April_17_2025"
+    },
+    "nsm_bone_only": {
+        "path_model_config": "/bmrNAS/people/aagatti/projects/auto_seg_server/Segmentation/NSM_MODELS/551_nsm_femur_bone_v0.0.1/model_params_config.json",
+        "path_model_state": "/bmrNAS/people/aagatti/projects/auto_seg_server/Segmentation/NSM_MODELS/551_nsm_femur_bone_v0.0.1/model/1150.pth"
+    },
+    "bscore_bone_only": {
+        "path_model_folder": "/dataNAS/people/anoopai/KneePipeline/models_and_weights/NSM_models/NSM_Orig_BScore_Bone_Only_April_18_2025"
+    },
+    "regions": {
+        "cart": {
+            "1": "pat_cart",
+            "2": "fem_cart",
+            "3": "med_tib_cart",
+            "4": "lat_tib_cart",
+            "11": "ant_fem_cart",
+            "12": "med_wb_fem_cart",
+            "13": "lat_wb_fem_cart",
+            "14": "med_post_fem_cart",
+            "15": "lat_post_fem_cart"
+        },
+        "bone": {
+            "7": "femur",
+            "8": "tibia",
+            "9": "patella"
+        }
+    },
+    "bones": {
+        "patella": {
+            "tissue_idx": 9,
+            "list_cart_labels": [1],
+            "n_points": 10000,
+            "crop_percent": null},
+        "femur": {
+            "tissue_idx": 7,
+            "list_cart_labels": [2],
+            "n_points": 20000,
+            "crop_percent": 0.8},
+        "tibia": {
+            "tissue_idx": 8,
+            "list_cart_labels": [3,4],
+            "n_points": 20000,
+            "crop_percent": 0.8}
+    }
+}

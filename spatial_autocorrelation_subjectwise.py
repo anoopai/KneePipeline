@@ -1,0 +1,390 @@
+# %%
+import os
+import vtk
+import numpy as np
+import pandas as pd
+import seaborn as sbn
+import json
+import matplotlib.pyplot as plt
+from utils.append_df_to_excel import append_df_to_excel
+from splot.esda import plot_moran
+from splot.esda import moran_scatterplot
+from esda.moran import Moran_Local
+from scipy.spatial.distance import pdist, squareform
+from libpysal.weights import DistanceBand
+from esda.moran import Moran
+from pysal.lib import weights
+from splot.esda import moran_scatterplot
+from pymskt.mesh import Mesh, BoneMesh
+from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
+from pymskt.mesh.meshTools import smooth_scalars_from_second_mesh_onto_base, transfer_mesh_scalars_get_weighted_average_n_closest
+
+
+parameter2 = 'Diff_thickness (mm)'
+parameter1 = 'Diff_T2_mean_filt'
+
+visits = ['VISIT-2', 'VISIT-3', 'VISIT-4', 'VISIT-5']
+graft = ['aclr_BPBT', 'aclr_other', 'clat', 'ctrl']
+knees = ['aclr', 'clat', 'ctrl']
+visit_dict= {
+    'VISIT-1': 0.7,
+    'VISIT-2': 3,
+    'VISIT-3': 9,
+    'VISIT-4': 18,
+    'VISIT-5': 30,
+}
+sig_values = [0.05]
+k_neighbors = 20
+permutation= 999
+analysis_all = pd.DataFrame()
+
+dir_path = '/dataNAS/people/anoopai/DESS_ACL_study'
+code_dir_path = '/dataNAS/people/anoopai/KneePipeline/'
+data_path = os.path.join(dir_path, 'data')
+# data_path = os.path.join(code_dir_path, 'mean_data/subjectwise')
+log_file_path = os.path.join(code_dir_path, 'logs/spatial_autocorrelation_subjectwise_log.txt')
+results_path= os.path.join(code_dir_path, 'mean_data/spatial_autocorrelation_subjectwise')
+output_file_sac = os.path.join(results_path, f'spatial_autocorrelation_2.xlsx')
+output_file_regional = os.path.join(results_path, f'spatial_autocorrelation_regional_2.xlsx')
+sub_graft_path =  os.path.join(dir_path, 'results/subjects_data/subject_data_graft_types.json')
+
+with open(sub_graft_path) as f:
+        sub_grafts = json.load(f)
+        
+                                                   
+# Function to read scalar data from a VTK file
+def get_mesh_points_and_scalars(file_name, parameter1):
+    reader = vtk.vtkPolyDataReader()
+    reader.SetFileName(file_name)
+    reader.Update()
+    femur_mesh = BoneMesh(file_name)
+    
+    # Verify the data was correctly read
+    data = reader.GetOutput()
+    if data is None:
+        raise ValueError("Failed to read the VTK file.")
+
+    # Check points in the dataset
+    points = data.GetPoints()
+    if points is None:
+        raise ValueError("No point data found in VTK file.")
+
+    # Check for scalar data
+    point_data = data.GetPointData()
+    if point_data is None:
+        raise ValueError("No point data section found in VTK file.")
+    
+    # scalars = point_data.GetScalars()
+
+    points_all = np.array([points.GetPoint(i) for i in range(points.GetNumberOfPoints())])
+    # scalars_all = np.array([scalars.GetTuple(i)[0] for i in range(scalars.GetNumberOfTuples())])
+    scalars_all = vtk_to_numpy(femur_mesh.GetPointData().GetArray(parameter1))
+    
+    # Filter out points where scalars are -100 or -200
+    mask = (scalars_all != -100) & (scalars_all != -200)
+    
+    # Apply mask to filter points and scalars
+    points_filt = points_all[mask]
+    scalars_filt = scalars_all[mask]
+    
+    return points_all, scalars_all, points_filt, scalars_filt, mask
+
+# Function to compute Moran's I using libpysal
+def compute_morans_i(locations, values, k_neighbors=10, permutation=999):
+    
+    from libpysal.weights import KNN
+    from esda.moran import Moran, Moran_Local
+    
+    # Create a KNN spatial weights matrix
+    weights_knn = KNN.from_array(locations, k=k_neighbors)
+    
+    # Compute Moran's I and Local Moran's I
+    moran = Moran(values, weights_knn, permutations=permutation)
+    moran_loc = Moran_Local(values, weights_knn, permutations=permutation)
+    
+    return moran, moran_loc, weights_knn
+
+################################################################################################################
+ # Main loop
+################################################################################################################
+
+df_region_all = pd.DataFrame()
+for subject in os.listdir(data_path):
+    subject_path = os.path.join(data_path, subject)
+
+    if os.path.isdir(subject_path):        
+        
+        for visit in os.listdir(subject_path):
+            if visit not in ['VISIT-1', 'VISIT-6']:
+                visit_path = os.path.join(subject_path, visit)
+
+                if os.path.isdir(visit_path):
+                    # Iterate through each knee type in the visit path
+                    for knee in os.listdir(visit_path):
+                        knee_path = os.path.join(visit_path, knee)
+                        
+                        if knee == 'aclr':
+                            for key, values in sub_grafts.items():
+                                if subject in values :
+                                    graft = key
+                                    break
+                        else:
+                            graft = knee
+                        
+                        if os.path.isdir(knee_path) and knee in knees:
+                            path_image = os.path.join(knee_path, 'scans/qdess')
+                            path_save = os.path.join(knee_path, f'results_nsm')
+                            vtk_file = os.path.join(path_save, 'femur_mesh_NSM_orig_reg2mean.vtk')
+                                
+                            print(f'{subject} {knee} {visit}')
+                            
+                            try: 
+                                    
+                                points, scalars, points_filt, scalars_filt, mask = get_mesh_points_and_scalars(vtk_file, parameter1)
+
+                                # Step 3: Compute and print Moran's I
+                                moran, moran_loc, weights_moran = compute_morans_i(points_filt, scalars_filt, k_neighbors=k_neighbors, permutation=permutation)
+                                                            
+                                print(f'Moran: {moran.I}')
+                                
+                                analysis_info = pd.DataFrame({
+                                    'Subject': [subject],
+                                    'Knee': [knee],
+                                    'Graft': [graft],
+                                    'Visit': [visit],
+                                    'Timepoint': [visit_dict[visit]],
+                                    'k_neighbors': [k_neighbors],
+                                    'Permutation': [permutation],
+                                    'Moran_I': [f'{moran.I:.4f}'],
+                                    'P-value sim': [f'{moran.p_sim:.4f}'],
+                                    'z-score sim': [f'{moran.z_sim:.4f}'],  
+                                    'P-value Z sim': [f'{moran.p_z_sim:.4f}'],
+                                })
+                                
+                                analysis_all = pd.concat([analysis_all, analysis_info], ignore_index=True)
+                                
+                                append_df_to_excel(analysis_info, sheet=parameter1, save_path=output_file_sac)
+                                
+                                # Step 4: Plot Moran's Global and Local 
+                                plot_moran(moran, zstandard=True, figsize=(10,4), aspect_equal=False)
+                                plt.text(-3.5, 1.5, f'Moran I: {moran.I:.4f}', fontsize=12)
+                                plt.text(-3.5, 1.0, f'p-value: {moran.p_sim:.4f}', fontsize=12)
+                                plt.title(f'{knee.upper()} knee at {visit}')
+                                plt.savefig(os.path.join(path_save, f'Moran_global_knn{k_neighbors}_perm{permutation}.png'))
+                                plt.close()
+
+                                fig = plt.figure(figsize=(5, 5))
+                                ax = fig.add_subplot(111)
+                                moran_scatterplot(moran_loc, p=0.05, aspect_equal=False, ax=ax)
+
+                                plt.text(0.9, 0.9, 'HH', fontsize=15)
+                                plt.text(-0.9, -0.9, 'LL', fontsize=15)
+                                plt.text(-0.9, 0.9, 'LH', fontsize=15)
+                                plt.text(0.9, -0.9, 'HL', fontsize=15)
+                                plt.savefig(os.path.join(path_save, f'Moran_local_knn{k_neighbors}_perm{permutation}.png'))
+                                plt.close()
+
+                                for sig_value in sig_values:
+                                    j = 0 
+                                    # Step 5: Save the results to a new VTK file
+                                    femur_path_save = os.path.join(path_save, f'Moran_knn{k_neighbors}_perm{permutation}_sig{sig_value}_{parameter1}.vtk') # Replace with your VTK file path
+                                    if os.path.exists(femur_path_save):
+                                        os.remove(femur_path_save)
+                                    
+                                    femur_mesh = BoneMesh(vtk_file)
+                                        
+                                    scalar = vtk_to_numpy(femur_mesh.GetPointData().GetArray(parameter1)) 
+                                    labels = vtk_to_numpy(femur_mesh.GetPointData().GetArray('labels'))
+                                    # direction = vtk_to_numpy(femur_mesh.GetPointData().GetArray('direction'))
+                                    # spearman_r = vtk_to_numpy(femur_mesh.GetPointData().GetArray('spearman_r'))
+                                    diff_t2_mean = vtk_to_numpy(femur_mesh.GetPointData().GetArray(parameter2))
+                                    
+                                    scalar_sig = np.zeros_like(scalar).astype(float)  # New array for modified scalar values
+                                    direction_sig = np.zeros_like(scalar).astype(float)  # New array for modified direction values
+                                    # spearman_r_sig = np.zeros_like(scalar).astype(float)  # New array for modified spearman_r values
+                                    diff_t2_mean_sig = np.zeros_like(scalar).astype(float)  # New array for modified diff_t2_mean_all values
+                                    
+                                    # Initialize arrays for Moran's I and other statistics
+                                    moran_I = np.zeros_like(scalar).astype(float)
+                                    moran_z = np.zeros_like(scalar).astype(float)
+                                    moran_p = np.ones_like(scalar).astype(float)
+                                    moran_q = np.zeros_like(scalar).astype(float)  
+                                    moran_EI = np.zeros_like(scalar).astype(float)
+                                    moran_z_sim = np.zeros_like(scalar).astype(float)
+                                    moran_p_sim = np.ones_like(scalar).astype(float)
+                                    moran_I_sig = np.zeros_like(scalar).astype(float)
+                                    moran_q_sig = np.zeros_like(scalar).astype(float)
+                                    moran_p_z_sim = np.ones_like(scalar).astype(float)
+
+                                    # Assuming moran_loc and mask are already defined
+                                    for i, data in enumerate(mask):
+                                        if mask[i]:
+                                            moran_I[i] = moran_loc.Is[j]
+                                            moran_z[i] = moran_loc.z[j]
+                                            moran_p[i] = moran_loc.p_sim[j]
+                                            moran_q[i] = moran_loc.q[j]
+                                            moran_EI[i] = moran_loc.EI[j]
+                                            moran_z_sim[i] = moran_loc.z_sim[j]
+                                            moran_p_sim[i] = moran_loc.p_sim[j]
+                                            moran_p_z_sim[i] = 2 * moran_loc.p_z_sim[j]  # Two-tailed test
+                                            if (moran_p_sim[i] < sig_value) and (moran_z_sim[i] > 1.96): # pnly if the z-sim is greater than 0 and significant
+                                                moran_I_sig[i] = moran_I[i]
+                                                scalar_sig[i] = scalar[i]
+                                                moran_q_sig[i] = moran_q[i]
+                                                # spearman_r_sig[i] = spearman_r[i]
+                                                diff_t2_mean_sig[i] = diff_t2_mean[i]
+                                                # direction_sig[i] = direction[i]
+                                            else:
+                                                moran_I_sig[i] = 0.00
+                                                scalar_sig[i] = 0.00
+                                                moran_q_sig[i]= 0.00
+                                                direction_sig[i] = 0.00
+                                                # spearman_r_sig[i] = 0.00
+                                                diff_t2_mean_sig[i] = 0.00
+                                            j += 1
+                                        else:
+                                            moran_I[i] = 0.00
+                                            moran_z[i] = 0.00
+                                            moran_p[i] = 0.00
+                                            moran_q[i] = 0.00
+                                            moran_EI[i] = 0.00
+                                            moran_z_sim[i] = 0.00
+                                            moran_p_sim[i] = 0.00
+                                            moran_p_z_sim[i] = 0.00
+                                            moran_I_sig[i] = 0.00
+                                            moran_q_sig[i]= 0.00
+                                            scalar_sig[i] = 0.00 
+                                            # spearman_r_sig[i] = 0.00
+                                            # direction_sig[i] = 0.00
+                                            diff_t2_mean_sig[i] = 0.00
+                                            
+                                    # Create dictionaries to store the values for the mesh
+                                    moran_I_dict = moran_I
+                                    moran_z_dict = moran_z
+                                    moran_p_dict = moran_p
+                                    moran_q_dict = moran_q
+                                    moran_EI_dict = moran_EI
+                                    moran_z_sim_dict = moran_z_sim
+                                    morna_p_sim_dict = moran_p_sim
+                                    moran_p_z_sim_dict = moran_p_z_sim
+                                    moran_I_sig_dict = moran_I_sig
+                                    moran_q_sig_dict = moran_q_sig
+                                    scalar_sig_dict = scalar_sig
+                                    # direction_sig_dict = direction_sig
+                                    # spearman_r_sig_dict = spearman_r_sig
+                                    diff_t2_mean_all_sig_dict = diff_t2_mean_sig
+
+                                    # Assign the new values to the mesh
+                                    femur_mesh.point_data[f'{parameter1}_I'] = moran_I_dict
+                                    # femur_mesh.point_data['moran_z'] = moran_z_dict
+                                    # femur_mesh.point_data['moran_p'] = moran_p_dict
+                                    femur_mesh.point_data[f'{parameter1}_q'] = moran_q_dict
+                                    # femur_mesh.point_data['moran_EI'] = moran_EI_dict
+                                    femur_mesh.point_data[f'{parameter1}_z_sim'] = moran_z_sim_dict
+                                    femur_mesh.point_data[f'{parameter1}_p_sim'] = morna_p_sim_dict
+                                    femur_mesh.point_data[f'{parameter1}_p_z_sim'] = moran_p_z_sim_dict
+                                    femur_mesh.point_data[f'{parameter1}_I_sig'] = moran_I_sig_dict
+                                    femur_mesh.point_data[f'{parameter1}_q_sig'] = moran_q_sig_dict
+                                    femur_mesh.point_data[f'{parameter1}_sig'] = scalar_sig_dict
+                                    # femur_mesh.point_data[f'direction_sig'] = direction_sig_dict
+                                    # femur_mesh.point_data[f'spearman_r_sig'] = spearman_r_sig_dict
+                                    femur_mesh.point_data[f'{parameter2}_sig'] = diff_t2_mean_all_sig_dict
+                                    
+                                    femur_mesh.save(femur_path_save)
+                                    
+                                    
+                                    # Look at T2 in regions of increased and decreased thickness in each region
+                                    region_labels = {11: 'AN', 12: 'MC', 13: 'LC', 14: 'MP', 15: 'LP'}
+
+                                    # Load needed arrays
+                                    labels_array = vtk_to_numpy(femur_mesh.GetPointData().GetArray("labels"))
+                                    thickness_array = vtk_to_numpy(femur_mesh.GetPointData().GetArray(f'{parameter1}_sig'))
+                                    t2_sig_array = vtk_to_numpy(femur_mesh.GetPointData().GetArray(f'{parameter2}_sig'))
+
+                                    # Initialize result list to store per region output
+                                    region_analysis = []
+
+                                    for region_code, region_name in region_labels.items():
+                                                                            
+                                        region_mask = labels_array == region_code
+                                        n_total = np.sum(region_mask)
+                                        
+                                        region_thickness = thickness_array[region_mask]
+                                        region_t2 = t2_sig_array[region_mask]
+
+                                        pos_mask = region_thickness > 0
+                                        neg_mask = region_thickness < 0
+                                        
+                                        # print(region_code, region_name, n_total, np.sum(pos_mask), np.sum(neg_mask))
+
+                                        if n_total > 0:
+                                            percent_increase = 100 * np.sum(pos_mask) / n_total
+                                            percent_decrease = 100 * np.sum(neg_mask) / n_total
+                                        else:
+                                            percent_increase = 0
+                                            percent_decrease = 0
+
+                                        # Positive thickness change
+                                        if np.any(pos_mask):
+                                            mean_t2_pos = np.mean(region_t2[pos_mask])
+                                            region_analysis.append({
+                                                'Subject': subject,
+                                                'Visit': visit,
+                                                'Timepoint': visit_dict[visit],
+                                                'Knee': knee,
+                                                'Knee Graft': graft,
+                                                'Region': region_name,
+                                                f'{parameter1}': 'increase',
+                                                f'{parameter1} Percent':  percent_increase,
+                                                f'{parameter2}_avg': mean_t2_pos,
+                                            })                                        
+                                        else:
+                                            print(f'No positive thickness change in region {region_name}')  
+                                            region_analysis.append({
+                                                'Subject': subject,
+                                                'Visit': visit,
+                                                'Timepoint': visit_dict[visit],
+                                                'Knee': knee,
+                                                'Knee Graft': graft,
+                                                'Region': region_name,
+                                                f'{parameter1}': 'increase',
+                                                f'{parameter1} Percent':  0,
+                                                f'{parameter2}_avg': 0,
+                                            })
+
+                                        # Negative thickness change
+                                        if np.any(neg_mask):
+                                            mean_t2_neg = np.mean(region_t2[neg_mask])
+                                            region_analysis.append({
+                                                'Subject': subject,
+                                                'Visit': visit,
+                                                'Timepoint': visit_dict[visit],
+                                                'Knee': knee,
+                                                'Knee Graft': graft,
+                                                'Region': region_name,
+                                                f'{parameter1}': 'decrease',
+                                                f'{parameter1} Percent':  percent_decrease,
+                                                f'{parameter2}_avg': mean_t2_neg,
+                                            })
+                                            
+                                        else:
+                                            print(f'No negative thickness change in region {region_name}')  
+                                            region_analysis.append({
+                                                'Subject': subject,
+                                                'Visit': visit,
+                                                'Timepoint': visit_dict[visit],
+                                                'Knee': knee,
+                                                'Knee Graft': graft,
+                                                'Region': region_name,
+                                                f'{parameter1}': 'increase',
+                                                f'{parameter1} Percent':  0,
+                                                f'{parameter2}_avg': 0,
+                                            })
+
+                                    df_region_all = pd.concat([df_region_all, pd.DataFrame(region_analysis)], ignore_index=True)
+                                    
+                            except Exception as e:
+                                    with open(log_file_path, 'a') as f:
+                                        f.write(f"Error processing {subject} {knee} {visit}: {e}\n")
+                                        
+                    append_df_to_excel(df_region_all, sheet=parameter1, save_path=output_file_regional)          

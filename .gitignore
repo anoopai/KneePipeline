@@ -3,7 +3,11 @@
 **/DOSMA_WEIGHTS
 **/nsm
 **/pymskt
-**/DEPENDENCIES
+**/Dependencies
+**/BSCORE_MODELS
+**/MDC_controls
+**/models_and_weights
+**/mean_data
 
 dosma_knee_seg_orig.py
 config.json

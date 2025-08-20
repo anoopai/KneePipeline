@@ -1,0 +1,7 @@
+1. Fitting NSM and computing B-score: pipeline_DESS_NSM.py
+
+2. Registering NSM reconstructed femur mesh to mean femur mesh : pipeline_DESS_regFemur2Mean_scalarDiff_NSMrecon.py
+Registering original femur mesh to mean femur mesh : pipeline_DESS_regFemur2Mean_scalarDiff_orgMesh.py
+
+
+# To create mean shapes of Knee-groups

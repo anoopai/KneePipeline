@@ -13,11 +13,12 @@ os.environ['LOC_SDF_CACHE'] = ''
 from pymskt.mesh import BoneMesh
 from pymskt.mesh.meshTransform import get_linear_transform_matrix
 
-from NSM.models import TriplanarDecoder 
+from NSM.models import TriplanarDecoder
 from NSM.reconstruct import reconstruct_mesh
 
 
 # append 'LOC_SDF_CACHE' to environment variables
+
 
 # system arguments
 # path to the femur bone and cartilage meshes
@@ -38,6 +39,7 @@ path_config = os.path.join(path_script, 'config.json')
 
 with open(path_config) as f:
     general_config = json.load(f)
+
 
 # Setup file paths - relative to this script
 path_model_config = general_config['nsm_bone_only']['path_model_config']

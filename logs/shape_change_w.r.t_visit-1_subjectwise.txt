@@ -1,0 +1,63 @@
+An error occurred: Sheet 'bone_only_smallest' already exists and if_sheet_exists is set to 'error'.
+An error occurred: [Errno 2] No such file or directory: '/dataNAS/people/anoopai/DESS_ACL_study/results/BScore_and_FC_metrics/mean_shape_recon/BO_model/shape_change_w.r.t_visit-1_subjectwise/MinMax_change_in_BScore.xlsx'
+An error occurred: Sheet 'bone_only_largest' already exists and if_sheet_exists is set to 'error'.
+An error occurred: [Errno 2] No such file or directory: '/dataNAS/people/anoopai/DESS_ACL_study/results/BScore_and_FC_metrics/mean_shape_recon/BO_model/shape_change_w.r.t_visit-1_subjectwise/MinMax_BScore_latents_subjects.npz'
+An error occurred: '11-P is not a file in the archive'
+An error occurred: '6-P is not a file in the archive'
+An error occurred: name 'latent_vector' is not defined
+An error occurred: name 'latent_vector' is not defined
+An error occurred: 'bool' object has no attribute 'size'
+An error occurred: object of type 'bool' has no len()
+An error occurred: '[0] is not a file in the archive'
+An error occurred: '[0] is not a file in the archive'
+An error occurred: 'list' object has no attribute 'squeeze'
+An error occurred: can't convert np.ndarray of type numpy.object_. The only supported types are: float64, float32, float16, complex64, complex128, int64, int32, int16, int8, uint8, and bool.
+An error occurred: File (/dataNAS/people/anoopai/DESS_ACL_study/results/BScore_and_FC_metrics/mean_shape_recon/BO_model/MinMax_shape_change_w.r.t_visit-1_subjectwise/largest/Femur_NSMrecon_23-C_ctrl_Visit-1.vtk) not found
+An error occurred: File (/dataNAS/people/anoopai/DESS_ACL_study/results/BScore_and_FC_metrics/mean_shape_recon/BO_model/MinMax_shape_change_w.r.t_visit-1_subjectwise/largest/Femur_NSMrecon_23-C_ctrl_Visit-1.vtk) not found
+An error occurred: File (/dataNAS/people/anoopai/DESS_ACL_study/results/BScore_and_FC_metrics/mean_shape_recon/BO_model/MinMax_shape_change_w.r.t_visit-1_subjectwise/largest/Femur_NSMrecon_23-C_ctrl_Visit-1.vtk) not found
+An error occurred: name 'ref_latent' is not defined
+An error occurred: False
+An error occurred: join() argument must be str, bytes, or os.PathLike object, not 'DataFrame'
+An error occurred: join() argument must be str, bytes, or os.PathLike object, not 'Series'
+An error occurred: join() argument must be str, bytes, or os.PathLike object, not 'Series'
+An error occurred: name 'knee' is not defined
+An error occurred: join() argument must be str, bytes, or os.PathLike object, not 'NoneType'
+An error occurred: join() argument must be str, bytes, or os.PathLike object, not 'NoneType'
+An error occurred: join() argument must be str, bytes, or os.PathLike object, not 'NoneType'
+An error occurred: join() argument must be str, bytes, or os.PathLike object, not 'NoneType'
+An error occurred: join() argument must be str, bytes, or os.PathLike object, not 'NoneType'
+An error occurred: string indices must be integers
+An error occurred: not enough values to unpack (expected 4, got 2)
+An error occurred: can't convert np.ndarray of type numpy.object_. The only supported types are: float64, float32, float16, complex64, complex128, int64, int32, int16, int8, uint8, and bool.
+An error occurred: 'NoneType' object has no attribute 'squeeze'
+An error occurred: 'NoneType' object has no attribute 'squeeze'
+An error occurred: 'NoneType' object has no attribute 'squeeze'
+An error occurred: name 'nsm_recon' is not defined
+An error occurred: name 'nsm_recon' is not defined
+An error occurred: 'Latent'
+An error occurred: 'list' object has no attribute 'squeeze'
+An error occurred: index 0 is out of bounds for axis 0 with size 0
+An error occurred: index 0 is out of bounds for axis 0 with size 0
+An error occurred: operands could not be broadcast together with shapes (0,) (512,) 
+An error occurred: operands could not be broadcast together with shapes (0,) (512,) 
+An error occurred: operands could not be broadcast together with shapes (0,) (512,) 
+An error occurred: index 0 is out of bounds for axis 0 with size 0
+An error occurred: name 'ref_latent' is not defined
+An error occurred: name 'ref_latent' is not defined
+An error occurred: name 'ref_latent' is not defined
+An error occurred: "None of [Index(['Subject', 'Knee'], dtype='object')] are in the [columns]"
+An error occurred: "None of [Index(['Subject', 'Knee'], dtype='object')] are in the [columns]"
+An error occurred: name 'subjects_knees' is not defined
+An error occurred: "None of [Index(['Subject', 'Knee'], dtype='object')] are in the [columns]"
+An error occurred: Cannot compare structured or void to non-void arrays.
+An error occurred: 'Visit'
+An error occurred: Sheet 'bone_only_largest' already exists and if_sheet_exists is set to 'error'.
+An error occurred: 'Visit'
+An error occurred: Sheet 'bone_only_largest' already exists and if_sheet_exists is set to 'error'.
+An error occurred: name 'ref_latent' is not defined
+An error occurred: operands could not be broadcast together with shapes (0,) (512,) 
+An error occurred: can't multiply sequence by non-int of type 'float'
+An error occurred: can't multiply sequence by non-int of type 'float'
+An error occurred: setting an array element with a sequence.
+An error occurred: setting an array element with a sequence.
+An error occurred: File (/dataNAS/people/anoopai/DESS_ACL_study/results/BScore_and_FC_metrics/mean_shape_recon/BC_model/MinMax_shape_change_w.r.t_visit-1_subjectwise/largest/Cart_NSMrecon_21-P_aclr_Visit-1.vtk) not found
